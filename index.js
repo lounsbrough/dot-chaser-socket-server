@@ -70,21 +70,28 @@ const setupJoinRoomMessageHandler = (socket) => {
 };
 
 const setupNextMoveMessageHandler = (socket) => {
-    socket.on(nextMoveMessageId, ({ roomId, playerId, nextMove }, callback) => {
-        if (!roomId || !playerId || !nextMove || !callback) {
+    socket.on(nextMoveMessageId, ({ roomId, playerId, nextMove }) => {
+        if (!roomId || !playerId || !nextMove) {
             return;
         }
 
-        const role = Object.entries(roomGameStates[roomId].playerIds).find(([_, id]) => id === playerId)?.[0];
+        const uppercaseRoomId = roomId.toUpperCase();
+
+        const role = Object.entries(roomGameStates[uppercaseRoomId].playerIds).find(([_, id]) => id === playerId)?.[0];
         if (role && nextMove?.[0] && nextMove?.[1]) {
-            roomGameStates[roomId].pendingPositions[role] = [nextMove[0], nextMove[1]];
+            roomGameStates[uppercaseRoomId].pendingPositions[role] = [nextMove[0], nextMove[1]];
         }
 
-        if (roomGameStates[roomId].pendingPositions.chaser && roomGameStates[roomId].pendingPositions.chasee) {
-            roomGameStates[roomId].currentPositions = roomGameStates[roomId].pendingPositions;
-            socket.to(roomId).emit(gameStateChangeMessageId, getPublicGameState(roomGameStates[roomId]));
-            callback(getPublicGameState(roomGameStates[roomId]));
-            roomGameStates[roomId].pendingPositions = {};
+        if (roomGameStates[uppercaseRoomId].pendingPositions.chaser && roomGameStates[uppercaseRoomId].pendingPositions.chasee) {
+            roomGameStates[uppercaseRoomId].currentPositions = roomGameStates[uppercaseRoomId].pendingPositions;
+            io.sockets.in(uppercaseRoomId).emit(gameStateChangeMessageId, getPublicGameState(roomGameStates[uppercaseRoomId]));
+            roomGameStates[uppercaseRoomId].pendingPositions = {};
+
+            if (JSON.stringify(roomGameStates[uppercaseRoomId].currentPositions.chaser) === JSON.stringify(roomGameStates[uppercaseRoomId].currentPositions.chasee)) {
+                setTimeout(() => {
+                    io.sockets.in(uppercaseRoomId).emit(gameStateChangeMessageId, getInitialGameState());
+                }, 3000);
+            }
         }
     });
 };
