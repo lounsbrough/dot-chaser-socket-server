@@ -20,10 +20,7 @@ const io = new Server(server, {
 const roomGameStates = {};
 
 const getInitialGameState = () => ({
-    currentPositions: {
-        chaser: [1, 1],
-        chasee: [3, 3]
-    },
+    currentPositions: { chaser: [1, 1], chasee: [3, 3] },
     playerIds: {},
     playerNames: {},
     pendingPositions: {}
@@ -88,8 +85,16 @@ const setupNextMoveMessageHandler = (socket) => {
             roomGameStates[uppercaseRoomId].pendingPositions = {};
 
             if (JSON.stringify(roomGameStates[uppercaseRoomId].currentPositions.chaser) === JSON.stringify(roomGameStates[uppercaseRoomId].currentPositions.chasee)) {
+                const newGameState = JSON.parse(JSON.stringify(roomGameStates[uppercaseRoomId]));
+                newGameState.currentPositions = { chaser: [1, 1], chasee: [3, 3] };
+                newGameState.pendingPositions = {};
+                newGameState.playerIds.chaser = roomGameStates[uppercaseRoomId].playerIds.chasee;
+                newGameState.playerNames.chaser = roomGameStates[uppercaseRoomId].playerNames.chasee;
+                newGameState.playerIds.chasee = roomGameStates[uppercaseRoomId].playerIds.chaser;
+                newGameState.playerNames.chasee = roomGameStates[uppercaseRoomId].playerNames.chaser;
+                roomGameStates[uppercaseRoomId] = newGameState;
                 setTimeout(() => {
-                    io.sockets.in(uppercaseRoomId).emit(gameStateChangeMessageId, getInitialGameState());
+                    io.sockets.in(uppercaseRoomId).emit(gameStateChangeMessageId, getPublicGameState(roomGameStates[uppercaseRoomId]));
                 }, 3000);
             }
         }
